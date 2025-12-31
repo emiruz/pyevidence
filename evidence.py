@@ -19,15 +19,15 @@ class Subset:
         self.opts = opts
         self.bits = [default] * slots
 
-        f = lambda a, b: a | b  # bitwise union across option masks
+        f = lambda a, b: a | b
 
         for i, Os in settings.items():
             assert isinstance(Os, list)
             assert all(o in opts for o in Os)
             if Os == []:
-                self.bits[i] = default  # treat empty list as "no constraint" (Ω) for that slot
+                self.bits[i] = default  # empty list then no constraint (Ω) for slot.
             else:
-                self.bits[i] = reduce(f, (2**opts.index(o) for o in Os))  # allowed options -> mask
+                self.bits[i] = reduce(f, (2**opts.index(o) for o in Os))  # allowed options mask.
 
     def conj(self, s0):
         """Conjunction (intersection) of constraints: per-slot bitwise AND."""
@@ -73,7 +73,7 @@ class Subset:
 
 
 class Subsets:
-    """Factory/namespace for Subset objects with fixed `slots` and `opts`."""
+    """Factory for Subset objects with fixed `slots` and `opts`."""
 
     slots, opts, default = None, None, None
 
@@ -82,7 +82,7 @@ class Subsets:
         assert isinstance(opts, list) and len(opts) > 0 and slots > 0
         self.opts = opts
         self.slots = slots
-        self.default = int("".join(["1"] * len(opts)), 2)  # all options allowed (Ω mask)
+        self.default = int("".join(["1"] * len(opts)), 2)  # all options allowed (Ω mask).
 
     def new(self, settings=dict()):
         """Create a new Subset with given per-slot constraints."""
@@ -137,27 +137,28 @@ class Inference:
         return self
 
     def coarse(self, q):
-        """Approximate belief/plausibility bounds via iterative combination of (a,b,u)."""
+        """Order-invariant Yager coarse bounds on the induced frame {q, ¬q, Ω}."""
         assert isinstance(q, Subset) and len(self.mass) > 0
         assert not q.is_empty() and not q.is_omega()
 
-        As = [sum(p for x, p in zip(mm.mass, mm.probs) if x.implies(q)) for mm in self.mass]       # support for q
-        Bs = [sum(p for x, p in zip(mm.mass, mm.probs) if not x.intersects(q)) for mm in self.mass] # support for ¬q
+        As = [sum(p for x, p in zip(mm.mass, mm.probs) if x.implies(q))
+              for mm in self.mass]
+        Bs = [sum(p for x, p in zip(mm.mass, mm.probs) if not x.intersects(q))
+              for mm in self.mass]
 
         a, b = As[0], Bs[0]
-        u = 1 - a - b  # residual/ignorance mass
-
-        if len(As) == 1:
-            return a, 1 - b
+        u    = 1.0 - a - b
+        
+        if len(As) == 1: return a, 1.0 - b
 
         for a_i, b_i in zip(As[1:], Bs[1:]):
-            u_i = 1 - a_i - b_i
-            a0, b0, u0 = a, b, u
-            a = a0*a_i + a0*u_i + u0*a_i
-            b = b0*b_i + b0*u_i + u0*b_i
-            u = u0*u_i + a0*b_i + b0*a_i
+            u_i = 1.0 - a_i - b_i
+            a0  = a*a_i + a*u_i + u*a_i
+            b0  = b*b_i + b*u_i + u*b_i
+            u0  = u*u_i
+            a, b, u = a0, b0, u0
 
-        return a, 1 - b
+        return a, 1.0 - b
 
     def approx(self, q, n=999):
         """Monte Carlo estimate of belief/plausibility under random sampling."""
@@ -165,18 +166,18 @@ class Inference:
         assert not q.is_empty() and not q.is_omega()
         belief, plausibility = 0, 0
 
-        Es = [m.sample(k=n) for m in self.mass]  # iid samples per source mass function
-        f = lambda a, b: a.conj(b)               # combine samples by conjunction
+        Es = [m.sample(k=n) for m in self.mass]  # iid samples per source mass function.
+        f = lambda a, b: a.conj(b)               # combine samples by conjunction.
 
         for j in range(n):
             E = [x[j] for x in Es]
-            S = reduce(f, E, q.parent.new())     # conjunct all sampled focal elements
+            S = reduce(f, E, q.parent.new())     # conjunct all sampled focal elements.
 
             if not S.is_empty():
                 belief += 1 if S.implies(q) else 0
                 plausibility += 1 if S.intersects(q) else 0
             else:
-                # conflict resolution when combined sample is empty
+                # conflict resolution when combined sample is empty.
                 if self.method == Inference.YAGER:
                     plausibility += 1
                 else:

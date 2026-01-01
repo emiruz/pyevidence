@@ -7,10 +7,10 @@ import unittest, itertools
 class TestMass(unittest.TestCase):
 
     def test_make_mass_and_sample(self):
-        opts = ['a','b','c']
+        opts = [['a','b','c'], ['x','y'], ['i','j']]
         subs = Subsets(3, opts)
-        sub1 = subs.new({0: ['a','b']})
-        sub2 = subs.new({0: ['a']})
+        sub1 = subs.new({0: ['a','b'], 1: ['x']})
+        sub2 = subs.new({0: ['a','b'], 2: ['i']})
         sub3 = subs.new({0: ['c']})
 
         mass = Mass()

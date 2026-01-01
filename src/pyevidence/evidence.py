@@ -1,33 +1,35 @@
 from functools import reduce
-from itertools import product
+from itertools import product, chain
 import random
 import numpy as np
 
 
 class Subset:
-    """Bitset-encoded constraints over `slots`, each slot is a subset of `opts`."""
+    """Bitset-encoded constraints over `slots`, each slot is a subset of an `opts` list."""
 
-    def __init__(self, parent, settings, slots, opts, default):
+    def __init__(self, parent, settings, slots, opts, defaults):
         """Build per-slot bitmasks from `settings` (slot index -> allowed options)."""
+
         assert isinstance(parent, Subsets) and \
             isinstance(opts, list) and \
             isinstance(settings, dict) and \
-            isinstance(default, int)
+            isinstance(defaults, list) and \
+            len(opts) == len(defaults) == slots
         self.parent = parent
         self.slots = slots
-        self.default = default
+        self.defaults = defaults
         self.opts = opts
-        self.bits = [default] * slots
+        self.bits = defaults[:]
 
         f = lambda a, b: a | b
 
         for i, Os in settings.items():
             assert isinstance(Os, list)
-            assert all(o in opts for o in Os)
+            assert all(o in opts[i] for o in Os)
             if Os == []:
-                self.bits[i] = default  # empty list then no constraint (Ω) for slot.
+                self.bits[i] = defaults[i] # default to no constraint (Ω).
             else:
-                self.bits[i] = reduce(f, (2**opts.index(o) for o in Os))  # allowed options mask.
+                self.bits[i] = reduce(f, (2**opts[i].index(o) for o in Os))  # options mask.
 
     def conj(self, s0):
         """Conjunction (intersection) of constraints: per-slot bitwise AND."""
@@ -45,7 +47,7 @@ class Subset:
 
     def is_omega(self):
         """True iff all slots are unconstrained (mask = default = all 1s)."""
-        return all(x == self.default for x in self.bits)
+        return all(x == d for x,d in zip(self.bits, self.default))
 
     def implies(self, s0):
         """Subset implication: every slot's mask is contained in s0's mask."""
@@ -55,39 +57,37 @@ class Subset:
         """Non-empty intersection per slot: all slotwise ANDs are nonzero."""
         return all(a & b != 0 for a, b in zip(self.bits, s0.bits))
 
-    def __to_opts(self, x):
+    def __to_opts(self, x, opts):
         """Decode a bitmask into the corresponding list of option labels."""
         assert isinstance(x, int)
-        pos = [(i, 2**y) for i, y in enumerate(range(len(self.opts)))]
-        return [self.opts[i] for i, y in pos if x & y == y]
+        pos = [(i, 2**y) for i, y in enumerate(range(len(opts)))]
+        return [opts[i] for i, y in pos if x & y == y]
 
     def generate(self):
         """Enumerate all assignments consistent with this subset (Cartesian product)."""
-        return product(*[self.__to_opts(x) for x in self.bits])
+        return product(*[self.__to_opts(x, opts) for x, opts in zip(self.bits, self.opts)])
 
     def schema(self):
-        """Human-readable per-slot constraint schema (`*` for unconstrained)."""
-        xs = [self.__to_opts(x) for x in self.bits]
-        xs = ['*' if x == self.opts else str(set(x)) for x in xs]
+        """Readable per-slot constraint schema (`*` for unconstrained)."""
+        xs = [self.__to_opts(x, opts) for x, opts in zip(self.bits, self.opts)]
+        xs = ['*' if x == opts else str(set(x)) for x, opts in zip(xs, self.opts)]
         return " ".join(xs)
 
 
 class Subsets:
     """Factory for Subset objects with fixed `slots` and `opts`."""
 
-    slots, opts, default = None, None, None
-
     def __init__(self, slots, opts):
         """Define the universe: number of slots and option alphabet per slot."""
-        assert isinstance(opts, list) and len(opts) > 0 and slots > 0
+        assert isinstance(opts, list) and len(opts) == slots and slots > 0
         self.opts = opts
         self.slots = slots
-        self.default = int("".join(["1"] * len(opts)), 2)  # all options allowed (Ω mask).
+        self.defaults = [int("".join(["1"] * len(os)), 2) for os in opts] # Ω mask.
 
     def new(self, settings=dict()):
         """Create a new Subset with given per-slot constraints."""
         assert isinstance(settings, dict)
-        return Subset(self, settings, self.slots, self.opts, self.default)
+        return Subset(self, settings, self.slots, self.opts, self.defaults)
 
 
 class Mass:

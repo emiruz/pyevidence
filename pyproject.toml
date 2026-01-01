@@ -5,8 +5,8 @@ build-backend = "hatchling.build"
 [project]
 name = "pyevidence"
 version = "0.1.0"
-description = "Efficient evidence theory (Dempster-Shafer) calculations"
-authors = [{name="Emir Uz"}]
+description = "Efficient evidence theory (Dempster-Shafer) calculations."
+authors = [{name="Emir Uz."}]
 requires-python = ">=3.9"
 dependencies = [
   "numpy>=1.23",

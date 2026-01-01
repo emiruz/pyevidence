@@ -44,9 +44,9 @@ what the option in each dimension should be. For example, if we wanted to
 define a set representing the Cartesian join {a,b} * {x,y,z} we would write:
 ```
 subs = Subsets(slots=2, opts=[['a','b'], ['x','y','z']])
-sub  = subs.new()
+sub1 = subs.new()
 
-print(list(sub.generate()))
+print(list(sub1.generate()))
 
 >> [('a', 'x'), ('a', 'y'), ('a', 'z'), ('b', 'x'), ('b', 'y'), ('b', 'z')]
 ```
@@ -58,14 +58,14 @@ print(list(sub2.generate()))
 
 >> [('a', 'x'), ('a', 'z')]
 ```
-The `sub.schema()` function will output a readable schema for each subset
+The `sub1.schema()` function will output a readable schema for each subset
 so that it is easier to see what is going on.
 ```
-print("default,",  sub.schema())
-print("specific,", sub2.schema())
+print("sub1,", sub1.schema())
+print("sub2,", sub2.schema())
 
->> default,  * *
->> specific, {'a'} {'z', 'x'}
+>> sub1, * *
+>> sub2, {'a'} {'z', 'x'}
 ```
 Cartesian joins are the representational limitation of this package. It
 enables otherwise large subsets to be represented as a small set of integers
@@ -75,11 +75,9 @@ and for all operations to be bitwise comparisons: linear time/space complexity.
 ### Mass assignment
 
 Start by importing the `Mass` class:
-
 ```
 from pyevidence import Subsets, Mass
 ```
-
 Once we've made some subsets, we can create a mass function by adding the
 subset and a probability assignment to a `Mass` object:
 ```
@@ -94,4 +92,41 @@ The assignment should add up to 1. We can check this by running
 
 ### Inference
 
+Start by importing the `Inference` class:
+```
+from pyevidence import Subsets, Mass, Inference
+```
+The inference class enables inference over fused mass functions. That is,
+queries for subsets over masses considered together. It supports two 
+fusion rules which differ in how they handle disagreements between mass
+assigments. Setting `method=Inference.YAGER` assigns disagreement to the
+vacuous set (ignorance) whilst `method=Inference.DP` assigns it to the 
+disjunction of the terms which disagree. For example:
+```
+model = Inference(method=Inference.YAGER)
+```
+Once the method is declared we can add mass assignments like so:
+```
+model.add_mass(mass1)
+model.add_mass(mass2)
 ...
+```
+There are two functions which we can use to calculate belief/plausibility
+for some subset `q`. The `coarse` function will reduce your mass
+assignments to the simpler focal set of `{q, not q}` and then perform a
+binary mass fusion which has identical for both methods. The benefit of
+the function is efficiency however making the focal set more coarse will
+lose information and make inference approximate, the effect of which
+increases with the granularity of your full focal set and the number of
+mass assignments.
+
+The alternative is to use `approx` which is a Monte Carlo estimation of
+the exact inference. The benefits are that the full granularity of your
+focal set will be taken into account, and time complexity will scale
+linearly with the number of mass assigments, however granular focal sets
+with many assignments require many simulations, so the constants can be
+large. Here is the format:
+```
+b1, p1 = model.coarse(q)          # Coarse inference.
+b2, p2 = model.approx(q, n=10000) # Monte Carlo estimation.
+```

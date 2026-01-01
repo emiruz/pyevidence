@@ -24,7 +24,7 @@ class TestInference(unittest.TestCase):
 
     def test_coarse_is_exact_on_three_state_family(self):
         # 1 slot, 2 options => q and ¬q are complements; Ω is unconstrained.
-        opts = ['a', 'b']
+        opts = [['a', 'b']]
         subs = Subsets(1, opts)
         q    = subs.new({0: ['a']})
         nq   = subs.new({0: ['b']})  # ¬q within this 2-option universe
@@ -39,15 +39,15 @@ class TestInference(unittest.TestCase):
 
         b_coarse, p_coarse = infer.coarse(q)
 
-        a_exact, b_exact, u_exact = self._exact_yager_three_state([(0.2, 0.3, 0.5),
-                                                                   (0.6, 0.1, 0.3)])
+        a_exact, b_exact, u_exact = self._exact_yager_three_state(
+            [(0.2, 0.3, 0.5), (0.6, 0.1, 0.3)])
         # In this family: Bel(q)=m(q)=a, Pl(q)=1-m(¬q)=1-b
         assert abs(b_coarse - a_exact) < 1e-12
         assert abs(p_coarse - (1 - b_exact)) < 1e-12
         assert 0 <= b_coarse <= p_coarse <= 1
 
     def test_coarse_order_invariant(self):
-        opts = ['a', 'b']
+        opts = [['a', 'b']]
         subs = Subsets(1, opts)
         q, nq, omg = subs.new({0: ['a']}), subs.new({0: ['b']}), subs.new()
 
@@ -66,7 +66,7 @@ class TestInference(unittest.TestCase):
 
     def test_approx_converges_on_three_state_family(self):
         np.random.seed(0)
-        opts = ['a', 'b']
+        opts = [['a', 'b']]
         subs = Subsets(1, opts)
         q, nq, omg = subs.new({0: ['a']}), subs.new({0: ['b']}), subs.new()
 
@@ -89,7 +89,7 @@ class TestInference(unittest.TestCase):
     def test_approx_conflict_rule_difference(self):
         # Build two sources that always conflict (conjunction empty),
         # and choose q disjoint from BOTH, so DP plausibility=0 but Yager plausibility=1.
-        opts = ['a', 'b', 'c']
+        opts = [['a', 'b', 'c']]
         subs = Subsets(1, opts)
 
         A = subs.new({0: ['a']})
@@ -110,7 +110,7 @@ class TestInference(unittest.TestCase):
 
     def test_single_source_approx_matches_exact_bel_pl(self):
         np.random.seed(2)
-        opts = ['a', 'b', 'c']
+        opts = [['a', 'b', 'c']] * 2
         subs = Subsets(2, opts)
 
         # Query q constrains slot0 to {a}; slot1 unconstrained.
@@ -140,7 +140,7 @@ class TestInference(unittest.TestCase):
 
     def test_approx_order_invariant(self):
         np.random.seed(3)
-        opts = ['a', 'b', 'c']
+        opts = [['a', 'b', 'c']] * 2
         subs = Subsets(2, opts)
 
         q = subs.new({0: ['a'], 1: ['b']})

@@ -166,13 +166,13 @@ model.add_mass(
 # Witness #3.
 model.add_mass(
     (Mass()
-     .add(subs.new({2: ['spanner', 'rope']}), 0.3)
+     .add(subs.new({2: ['spanner', 'rope']}), 0.5)
      .add(subs.new({0: ['peacock','white','plum'], 1: ['kitchen','study','hall']}), 0.4)
-     .add(subs.new(), 0.3)))
+     .add(subs.new(), 0.1)))
 
 
 def calculate_and_print(q):
-    belief, plausibility = model.approx(q, n=100000)
+    belief, plausibility = model.approx(q, n=10000)
     print(q.schema(), belief, plausibility)
 
 # Individuals.
@@ -188,27 +188,60 @@ for weapon in weapons:
     calculate_and_print(subs.new({2: [weapon]}))
 
 
-> {'plum'} * *          0.44502 1.0
-> {'scarlett'} * *      0.0     0.3606
-> {'mustard'} * *       0.0     0.10949
-> {'white'} * *         0.0     0.29734
-> {'green'} * *         0.0     0.1778
-> {'peacock'} * *       0.0     0.17912
+> {'plum'} * *          0.4450 1.0
+> {'scarlett'} * *      0.0    0.3606
+> {'mustard'} * *       0.0    0.1094
+> {'white'} * *         0.0    0.2973
+> {'green'} * *         0.0    0.1778
+> {'peacock'} * *       0.0    0.1791
 
-> * {'kitchen'} *       0.0     0.17963
-> * {'ballroom'} *      0.0     0.10849
-> * {'conservatory'} *  0.0     0.10975
-> * {'dining room'} *   0.0     0.10767
-> * {'billiard room'} * 0.0     0.10672
-> * {'library'} *       0.0     0.3587
-> * {'lounge'} *        0.0     0.18004
-> * {'hall'} *          0.0     0.59907
-> * {'study'} *         0.32798 1.0
+> * {'kitchen'} *       0.0    0.1796
+> * {'ballroom'} *      0.0    0.1084
+> * {'conservatory'} *  0.0    0.1097
+> * {'dining room'} *   0.0    0.1076
+> * {'billiard room'} * 0.0    0.1067
+> * {'library'} *       0.0    0.3587
+> * {'lounge'} *        0.0    0.1800
+> * {'hall'} *          0.0    0.5990
+> * {'study'} *         0.3279 1.0
 
-> * * {'candlestick'}   0.0     0.69866
-> * * {'dagger'}        0.0     0.4209
-> * * {'lead-pipe'}     0.0     0.70293
-> * * {'revolver'}      0.0     0.42106
-> * * {'rope'}          0.0     0.60025
-> * * {'spanner'}       0.12087 1.0
+> * * {'candlestick'}   0.0    0.5086
+> * * {'dagger'}        0.0    0.3009
+> * * {'lead-pipe'}     0.0    0.5029
+> * * {'revolver'}      0.0    0.3010
+> * * {'rope'}          0.0    0.6002
+> * * {'spanner'}       0.1975 1.0
 ```
+From the above results, we believe that `plum` was the most
+likely antagonist, the `study` the most likely location and
+a `spanner` the most likely weapon. Meanwhile, plausibility
+(a measure of non-contradiction) suggests `mustard` is the
+suspect least supported by the evidence. Let's investigate
+`plum` some more. We do no have much evidence for combined
+beliefs about how and where `plum` might have done it, but
+we can examine where the evidence is least contradictory.
+Here are the top 10 hypotheses by plausibility:
+```
+hypotheses = []
+for place, weapon in product(places, weapons):
+    q   = subs.new({0: ["plum"], 1: [place], 2: [weapon]})
+    b,p = model.approx(q,n=10000)
+    hypotheses.append((p, q.schema()))
+
+for p, h in sorted(hypotheses, reverse=True)[:10]:
+    print(p, h)
+
+
+> 1.0     {'plum'}  {'study'}   {'spanner'}
+> 0.6044  {'plum'}  {'study'}   {'rope'}
+> 0.5974  {'plum'}  {'hall'}    {'spanner'}
+> 0.5084  {'plum'}  {'study'}   {'lead-pipe'}
+> 0.5005  {'plum'}  {'study'}   {'candlestick'}
+> 0.3556  {'plum'}  {'library'} {'spanner'}
+> 0.3068  {'plum'}  {'hall'}    {'candlestick'}
+> 0.3054  {'plum'}  {'study'}   {'revolver'}
+> 0.2979  {'plum'}  {'hall'}    {'lead-pipe'}
+> 0.2954  {'plum'}  {'study'}   {'dagger'}
+```
+So, most plausibly `plum` in the `study` with a `spanner`
+according to our uncertain witnesses.

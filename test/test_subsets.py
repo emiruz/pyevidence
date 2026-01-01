@@ -35,6 +35,12 @@ class TestSubsets(unittest.TestCase):
         sub1, sub2 = subs.new({0: ['a']}), subs.new({0: ['c']})
         assert sub1.conj(sub2).is_empty()
 
+    def test_is_empty(self):
+        opts = [['a','b','c'],['d','f'], ['x','y','z','w']]
+        subs = Subsets(3, opts)
+        assert subs.new().is_omega()
+        assert not subs.new({0: ['a']}).is_omega()
+        
     def test_implies(self):
         opts = [['a','b','c']] * 3
         subs = Subsets(3, opts)

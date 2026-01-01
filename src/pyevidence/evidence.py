@@ -47,7 +47,7 @@ class Subset:
 
     def is_omega(self):
         """True iff all slots are unconstrained (mask = default = all 1s)."""
-        return all(x == d for x,d in zip(self.bits, self.default))
+        return all(x == d for x,d in zip(self.bits, self.defaults))
 
     def implies(self, s0):
         """Subset implication: every slot's mask is contained in s0's mask."""

@@ -130,3 +130,85 @@ large. Here is the format:
 b1, p1 = model.coarse(q)          # Coarse inference.
 b2, p2 = model.approx(q, n=10000) # Monte Carlo estimation.
 ```
+
+### A "whodunit" example
+Here is a short Cluedo themed example in which we combine uncertain set
+based evidence from three witnesses to infer "whodunit".
+```
+from pyevidence import *
+from itertools import product
+
+
+people  = ["plum", "scarlett", "mustard", "white", "green", "peacock"]
+
+places  = ["kitchen", "ballroom", "conservatory", "dining room",
+          "billiard room", "library", "lounge", "hall", "study"]
+
+weapons = ["candlestick", "dagger", "lead-pipe", "revolver", "rope",
+           "spanner"]
+
+model   = Inference(method=Inference.YAGER)
+subs    = Subsets(slots=3, opts=[people, places, weapons])
+
+# Witness #1.
+model.add_mass(
+    (Mass()
+     .add(subs.new({2: ['spanner','lead-pipe', 'candlestick']}), 0.4)
+     .add(subs.new({0: ['white','green','plum'], 1: ['lounge','study']}), 0.4)
+     .add(subs.new(), 0.2)))
+
+# Witness #2.
+model.add_mass(
+    (Mass()
+     .add(subs.new({0: ['scarlett','plum'], 1: ['hall','study','library']}), 0.7)
+     .add(subs.new(), 0.3)))
+
+# Witness #3.
+model.add_mass(
+    (Mass()
+     .add(subs.new({2: ['spanner', 'rope']}), 0.3)
+     .add(subs.new({0: ['peacock','white','plum'], 1: ['kitchen','study','hall']}), 0.4)
+     .add(subs.new(), 0.3)))
+
+
+def calculate_and_print(q):
+    belief, plausibility = model.approx(q, n=100000)
+    print(q.schema(), belief, plausibility)
+
+# Individuals.
+for person in people:
+    calculate_and_print(subs.new({0: [person]}))
+
+# Places.
+for place in places:
+    calculate_and_print(subs.new({1: [place]}))
+
+# Weapons.
+for weapon in weapons:
+    calculate_and_print(subs.new({2: [weapon]}))
+
+
+> {'plum'} * *          0.44502 1.0
+> {'scarlett'} * *      0.0     0.3606
+> {'mustard'} * *       0.0     0.10949
+> {'white'} * *         0.0     0.29734
+> {'green'} * *         0.0     0.1778
+> {'peacock'} * *       0.0     0.17912
+
+> * {'kitchen'} *       0.0     0.17963
+> * {'ballroom'} *      0.0     0.10849
+> * {'conservatory'} *  0.0     0.10975
+> * {'dining room'} *   0.0     0.10767
+> * {'billiard room'} * 0.0     0.10672
+> * {'library'} *       0.0     0.3587
+> * {'lounge'} *        0.0     0.18004
+> * {'hall'} *          0.0     0.59907
+> * {'study'} *         0.32798 1.0
+
+> * * {'candlestick'}   0.0     0.69866
+> * * {'dagger'}        0.0     0.4209
+> * * {'lead-pipe'}     0.0     0.70293
+> * * {'revolver'}      0.0     0.42106
+> * * {'rope'}          0.0     0.60025
+> * * {'spanner'}       0.12087 1.0
+```
